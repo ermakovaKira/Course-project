@@ -25,6 +25,13 @@ Player::Player(std::string pathIdle, std::string pathShoot, int width, int heigh
     float targetH = 180.0f;
     float currentScale = targetH / (float)h;
     sprite.setScale(currentScale, currentScale);
+    messageTimer = 0.f;
+    if (messageFont.loadFromFile("PixeloidSans.ttf")) {
+        messageText.setFont(messageFont);
+        messageText.setCharacterSize(16); // Сделали чуть крупнее для читаемости
+        messageText.setOutlineThickness(1.5f);
+        messageText.setOutlineColor(sf::Color::Black);
+    }
 }
 
 void Player::handleInput(sf::Event& event) {
@@ -129,12 +136,31 @@ void Player::update(float time) {
             }
         }
     }
+    if (messageTimer > 0.f) {
+        messageTimer -= 0.5f * time; 
+    }
 }
 
 void Player::draw(sf::RenderWindow& window) {
     window.draw(sprite);
+    drawMessage(window); // Рисуем всплывающее уведомление
 }
 
 void Player::showMessage(std::wstring message, sf::Color color) {
-    std::wcout << L"[Оповещение]: " << message << std::endl;
+    messageText.setString(message);
+    messageText.setFillColor(color);
+    messageTimer = 250.f; // Время жизни надписи на экране (~2.5 секунды)
+}
+
+void Player::drawMessage(sf::RenderWindow& window) {
+    if (messageTimer > 0.f) {
+        // Рассчитываем позицию: строго над головой Евы (на 40 пикселей выше её спрайта)
+        float centerX = sprite.getPosition().x + (w * sprite.getScale().x) / 2.f;
+        float topY = sprite.getPosition().y - 40.f;
+
+        messageText.setOrigin(messageText.getLocalBounds().width / 2.f, 0);
+        messageText.setPosition(centerX, topY);
+
+        window.draw(messageText);
+    }
 }

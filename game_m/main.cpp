@@ -2,7 +2,6 @@
 
 int main() {
     GameManager game;
-    game.run(); // Запуск игрового движка
+    game.run();
     return 0;
 }
-

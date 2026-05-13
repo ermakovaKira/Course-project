@@ -31,6 +31,13 @@ struct PlayerStats {
 
 class Player {
 public:
+public:
+    sf::Text messageText;
+    sf::Font messageFont;
+    float messageTimer; 
+
+
+    void drawMessage(sf::RenderWindow& window);
     sf::Sprite sprite;
     sf::Texture textureIdle;
     sf::Texture textureShoot;

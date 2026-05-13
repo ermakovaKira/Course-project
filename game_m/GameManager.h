@@ -1,7 +1,10 @@
-#ifndef GAME_MANAGER_H
+п»ї#ifndef GAME_MANAGER_H
 #define GAME_MANAGER_H
 
+#pragma once
+
 #include <SFML/Graphics.hpp>
+#include <iostream>
 #include "Config.h"
 #include "Player.h"
 #include "ItemDatabase.h"
@@ -9,12 +12,13 @@
 #include "DialogueSystem.h"
 #include "DialogueDatabase.h"
 #include "ApartmentScene.h"
-// #include "HallwayScene.h" // Сюда мы позже подключим вторую сцену
+#include "HallwayScene.h" 
 
 class GameManager {
 private:
     sf::RenderWindow window;
     sf::View gameView;
+    sf::View uiView;
     sf::Clock clock;
 
     ItemDatabase gameDb;
@@ -24,28 +28,66 @@ private:
 
     Player hero;
     ApartmentScene apartmentScene;
-    // HallwayScene hallwayScene; // Переменная для подъезда
+    HallwayScene hallwayScene;
+
+    HealthBar playerHPBar;
+    HealthBar zombieHPBar;
+
+    sf::Texture questBoxTex;
+    sf::Sprite questBoxSprite;
+    sf::Font questFont;
+    sf::Text questText;
+
+    // РЎРєСЂС‹С‚С‹Рµ Р±СѓС„РµСЂРЅС‹Рµ РїРµСЂРµРјРµРЅРЅС‹Рµ РґР»СЏ Р·Р°РґРµСЂР¶РєРё РІС‹РІРѕРґР° СѓРІРµРґРѕРјР»РµРЅРёР№ Рѕ РІРµС‰Р°С…
+    bool pendingMedkitMessage;
+    bool pendingGlockMessage;
 
 public:
     GameManager()
         : window(sf::VideoMode(800, 400), "Survival RPG - Fides: Point of No Return"),
         gameView(sf::FloatRect(0.f, 0.f, 800.f, 400.f)),
-        gameDb(NORMAL),
-        story(NORMAL),
-        hero("sprite_main.png", "spr_streilba_m2.png", 150, 234)
+        uiView(sf::FloatRect(0.f, 0.f, 800.f, 400.f)),
+        gameDb(NORMAL), story(NORMAL),
+        hero("sprite_main.png", "spr_streilba_m2.png", 150, 234),
+        playerHPBar(150.f, 12.f, sf::Color::Green),
+        zombieHPBar(60.f, 7.f, sf::Color::Red)
     {
         window.setFramerateLimit(60);
         window.setView(gameView);
 
-        // Начальная настройка Евы
-        hero.sprite.setPosition(120, 210); // Рост 180, сидит идеально на полу
+        hero.sprite.setPosition(120, 210);
         hero.db = &gameDb;
 
-        // Стартовый инвентарь Евы
         hero.inventory.loadItemTexture("Laptop", "icons/laptop.png");
         hero.inventory.loadItemTexture("Medkit", "icons/medkit.png");
         hero.inventory.loadItemTexture("Ammo", "icons/ammo.png");
         hero.inventory.addItem("Laptop", 1);
+
+        pendingMedkitMessage = false;
+        pendingGlockMessage = false;
+
+        playerHPBar.update(100.f, 100.f, sf::Vector2f(20.f, 20.f));
+
+        if (!questBoxTex.loadFromFile("icons/quest_bg.png")) {
+            std::cout << "Error: icons/quest_bg.png not found!" << std::endl;
+        }
+        questBoxTex.setSmooth(false);
+        questBoxSprite.setTexture(questBoxTex);
+
+        float targetWidth = 440.f;
+        float targetHeight = 32.f;
+        questBoxSprite.setScale(
+            targetWidth / questBoxSprite.getLocalBounds().width,
+            targetHeight / questBoxSprite.getLocalBounds().height
+        );
+
+        questBoxSprite.setColor(sf::Color(255, 255, 255, 160));
+        questBoxSprite.setPosition(180.f, 15.f);
+
+        questFont.loadFromFile("PixeloidSans.ttf");
+        questText.setFont(questFont);
+        questText.setCharacterSize(11);
+        questText.setFillColor(sf::Color(255, 215, 0));
     }
 
     void run() {
@@ -66,7 +108,6 @@ private:
             if (event.type == sf::Event::Closed)
                 window.close();
 
-            // Обработка Letterbox-масштабирования при изменении размеров экрана
             if (event.type == sf::Event::Resized) {
                 float windowRatio = (float)event.size.width / (float)event.size.height;
                 float viewRatio = 800.f / 400.f;
@@ -83,13 +124,14 @@ private:
                     viewport.height = height;
                 }
                 gameView.setViewport(viewport);
+                uiView.setViewport(viewport);
                 window.setView(gameView);
             }
 
-            // Передаем ввод игроку
-            hero.handleInput(event);
+            if (!dialogue.isOpen) {
+                hero.handleInput(event);
+            }
 
-            // Кнопка взаимодействия E (с эффектом печатной машинки)
             if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::E) {
                 if (dialogue.isOpen) {
                     if (dialogue.isPrinting()) {
@@ -97,49 +139,127 @@ private:
                     }
                     else {
                         dialogue.nextLine();
+
+                        // --- РЈРњРќР«Р™ РњРћРњР•РќРў Р—РђРљР Р«РўРРЇ Р”РРђР›РћР“Рђ ---
+                        if (!dialogue.isOpen) {
+                            // 1. Р•СЃР»Рё РґРѕС‡РёС‚Р°Р»Рё РґРёР°Р»РѕРі РІ РїРѕРґСЉРµР·РґРµ вЂ” С‚РѕР»СЊРєРѕ С‚РµРїРµСЂСЊ Р°РєС‚РёРІРёСЂСѓРµРј Р·РѕРјР±Рё
+                            if (story.currentScene == 2 && !story.hallwayIntroPlayed) {
+                                story.hallwayIntroPlayed = true;
+                            }
+
+                            // 2. Р•СЃР»Рё РґРѕС‡РёС‚Р°Р»Рё РґРёР°Р»РѕРі РњР°СЂРєР° РїРѕСЃР»Рµ РІР·Р»РѕРјР° вЂ” РІС‹РІРѕРґРёРј СЃРѕРѕР±С‰РµРЅРёРµ РѕР± Р°РїС‚РµС‡РєРµ
+                            if (story.currentScene == 1 && story.talkedToMarkStart && pendingMedkitMessage) {
+                                hero.showMessage(L"РџРћР›РЈР§Р•РќРћ: РђРџРўР•Р§РљРђ РњРђР РљРђ", sf::Color::Green);
+                                pendingMedkitMessage = false;
+                            }
+
+                            // 3. Р•СЃР»Рё РґРѕС‡РёС‚Р°Р»Рё РѕСЃРјРѕС‚СЂ СЏС‰РёРєР° вЂ” РІС‹РІРѕРґРёРј СЃРѕРѕР±С‰РµРЅРёРµ Рѕ Р“Р»РѕРєРµ Рё Р·Р°РїСѓСЃРєР°РµРј С…РѕРґСЊР±Сѓ РњР°СЂРєР° Рє РІС‹С…РѕРґСѓ
+                            if (story.currentScene == 1 && hero.inventory.items["Ammo"] > 0 && pendingGlockMessage) {
+                                hero.showMessage(L"РџРћР›РЈР§Р•РќРћ: Р“Р›РћРљ-17 (15 РїР°С‚СЂРѕРЅРѕРІ)", sf::Color::Green);
+                                story.markMovingToExit = true;
+                                pendingGlockMessage = false;
+                            }
+                        }
                     }
                 }
                 else {
-                    // Менеджер сам знает, какой сцене передать клик Е
+                    // РџРµСЂРµС…РІР°С‚С‹РІР°РµРј СѓСЃС‚Р°РЅРѕРІРєСѓ РѕС‚Р»РѕР¶РµРЅРЅС‹С… СЃРѕРѕР±С‰РµРЅРёР№ РїРµСЂРµРґ Р·Р°РїСѓСЃРєРѕРј РґРёР°Р»РѕРіР°
                     if (story.currentScene == 1) {
+                        if (apartmentScene.nearMark && story.readLaptopEmail && !story.talkedToMarkStart) {
+                            pendingMedkitMessage = true; // Р—Р°РїРѕРјРЅРёРј, С‡С‚Рѕ РЅР°РґРѕ РїРѕРєР°Р·Р°С‚СЊ Р°РїС‚РµС‡РєСѓ РџРћРЎР›Р• СЂР°Р·РіРѕРІРѕСЂР°
+                        }
+                        if (apartmentScene.nearDrawer && story.talkedToMarkStart && hero.inventory.items["Ammo"] == 0) {
+                            pendingGlockMessage = true; // Р—Р°РїРѕРјРЅРёРј, С‡С‚Рѕ РЅР°РґРѕ РїРѕРєР°Р·Р°С‚СЊ Р“Р»РѕРє РџРћРЎР›Р• РѕСЃРјРѕС‚СЂР° СЏС‰РёРєР°
+                        }
                         apartmentScene.handleInteraction(hero, story, dialogue, dialogueDb);
                     }
-                    /* else if (story.currentScene == 2) {
+                    else if (story.currentScene == 2) {
                         hallwayScene.handleInteraction(hero, story, dialogue, dialogueDb);
-                    } */
+                    }
                 }
             }
         }
     }
 
     void update(float time) {
-        hero.update(time);
-        dialogue.update(time); // Эффект печатной машинки обновляется здесь
+        if (!dialogue.isOpen) {
+            hero.update(time);
+        }
+        dialogue.update(time);
 
-        // Обновляем логику активной сцены в зависимости от StoryManager
+        static bool bulletHitRegistered = false;
+
         if (story.currentScene == 1) {
-            apartmentScene.updateDistances(hero.sprite.getPosition().x, dialogue.isOpen, hero.inventory.items["Ammo"]);
+            apartmentScene.update(time, hero, story);
 
-            // Триггер перехода: Ева взяла ствол, поговорила с Марком и дошла до левого края
-            if (hero.sprite.getPosition().x < 20.f && story.talkedToMarkStart && hero.inventory.items["Ammo"] > 0) {
-                story.currentScene = 2; // Меняем сцену на Подъезд
-                hero.sprite.setPosition(740, 210); // Переносим Еву на правый край новой локации
+            if (hero.sprite.getPosition().x < 15.f && story.talkedToMarkStart && hero.inventory.items["Ammo"] > 0) {
+                hallwayScene.init();
+                story.currentScene = 2;
+                hero.sprite.setPosition(730, 210);
+                dialogue.startDialogue(dialogueDb.getDialogue("hallway_intro"));
             }
         }
-        /* else if (story.currentScene == 2) {
-            hallwayScene.update(time, hero, story, dialogue, dialogueDb);
-        } */
+        else if (story.currentScene == 2) {
+            if (!hallwayScene.isLoaded) {
+                hallwayScene.init();
+            }
+
+            hallwayScene.update(time, hero, story, dialogue);
+
+            if (!dialogue.isOpen && hero.isShooting && hallwayScene.zombie.health > 0) {
+                if (int(hero.currentFrame) == 0 && !bulletHitRegistered) {
+                    float playerX = hero.sprite.getPosition().x;
+                    float zombieX = hallwayScene.zombie.sprite.getPosition().x;
+
+                    if (!hero.faceRight && playerX > zombieX) {
+                        hallwayScene.zombie.health -= 20.f;
+                        bulletHitRegistered = true;
+                        hero.showMessage(L"РџРћРџРђР”РђРќРР•!", sf::Color::Yellow);
+                    }
+                }
+            }
+            if (!hero.isShooting) {
+                bulletHitRegistered = false;
+            }
+        }
+
+        // --- РЈРџР РђР’Р›Р•РќРР• РљР’Р•РЎРўРђРњР Р‘Р•Р— РЎРџРћР™Р›Р•Р РћР’ ---
+        // Р•СЃР»Рё РёРґРµС‚ РґРёР°Р»РѕРі вЂ” РЅР° РїР»Р°С€РєРµ РІРёСЃРёС‚ РўР•РљРЈР©Р•Р• (СЃС‚Р°СЂРѕРµ) Р·Р°РґР°РЅРёРµ, Р° РЅРѕРІРѕРµ РЅРµ СЃРїРѕР№Р»РµСЂРёС‚СЃСЏ Р·Р°СЂР°РЅРµРµ!
+        if (!dialogue.isOpen) {
+            questText.setString(story.getCurrentQuestText());
+            sf::FloatRect textBounds = questText.getLocalBounds();
+            questText.setOrigin(textBounds.left + textBounds.width / 2.f, textBounds.top + textBounds.height / 2.f);
+            questText.setPosition(400.f, 31.f);
+        }
     }
 
     void render() {
         window.clear(sf::Color::Black);
 
+        window.setView(gameView);
         if (story.currentScene == 1) {
-            apartmentScene.draw(window); // Рисует фон и объекты квартиры
+            apartmentScene.draw(window);
+        }
+        else if (story.currentScene == 2) {
+            hallwayScene.draw(window);
+
+            if (hallwayScene.zombie.health > 0 && story.hallwayIntroPlayed) {
+                float zX = hallwayScene.zombie.sprite.getPosition().x + 40.f;
+                float zY = hallwayScene.zombie.sprite.getPosition().y - 15.f;
+                zombieHPBar.update(hallwayScene.zombie.health, 50.f, sf::Vector2f(zX, zY));
+                zombieHPBar.draw(window);
+            }
         }
 
-        // ВОЗВРАЩАЕМ ЕВУ (Теперь она будет одна!)
         hero.draw(window);
+
+        window.setView(uiView);
+
+        playerHPBar.update(hero.stats.health, 100.f, sf::Vector2f(20.f, 20.f));
+        playerHPBar.draw(window);
+
+        window.draw(questBoxSprite);
+        window.draw(questText);
 
         if (dialogue.isOpen) {
             dialogue.draw(window);
@@ -147,9 +267,6 @@ private:
 
         window.display();
     }
-
-
 };
 
 #endif
-

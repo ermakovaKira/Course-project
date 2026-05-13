@@ -77,5 +77,8 @@
     <ClInclude Include="GameManager.h">
       <Filter>Исходные файлы</Filter>
     </ClInclude>
+    <ClInclude Include="HallwayScene.h">
+      <Filter>Исходные файлы</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,102 +1,86 @@
 #include "Enemy.h"
-#include <cmath>
-#include <string> 
+#include <iostream>
 
-using namespace sf;
-Enemy::Enemy(std::string pathWalk, std::string pathAttack, sf::Vector2f pos, int width, int height)
-    : hpBar(60.f, 5.f, sf::Color::Red)
+Enemy::Enemy(std::string pathIdle, std::string pathAttack, sf::Vector2f pos, int width, int height)
+    : hpBar(100.f, 10.f, sf::Color::Red)
 {
-    // 1. Загрузка графики
-    textureWalk.loadFromFile(pathWalk);
+    if (!textureIdle.loadFromFile(pathIdle)) {
+        std::cout << "Error: " << pathIdle << " not found!" << std::endl;
+    }
     textureAttack.loadFromFile(pathAttack);
-    textureWalk.setSmooth(false);
+
+    textureIdle.setSmooth(false);
     textureAttack.setSmooth(false);
 
-    sprite.setTexture(textureWalk);
+    w = width;
+    h = height;
+    currentFrame = 0.f;
+    health = 50.f;
+
+    sprite.setTexture(textureIdle, true);
+    sprite.setTextureRect(sf::IntRect(0, 0, w, h));
     sprite.setPosition(pos);
 
-    // 2. Настройка размеров
-    w = width; h = height;
-
-    // ФИКСИРУЕМ РАЗМЕР ВРАГА (75x118)
-    float targetW = 75.0f;
-    float targetH = 118.0f;
-    sprite.setScale(targetW / (float)w, targetH / (float)h);
-
-    sprite.setTextureRect(sf::IntRect(0, 0, w, h));
-
-    // 3. Параметры
-    currentFrame = 0;
-    state = WALKING;
-    speed = 0.07f;
-    health = 100.f;
-    damage = 15.f;
-    attackCooldown = 1000.f;
-    timer = 0;
+    float targetH = 185.0f;
+    float currentScale = targetH / (float)h;
+    sprite.setScale(currentScale, currentScale);
 }
+
 void Enemy::update(float time, Player& hero) {
     if (health <= 0) return;
 
+    float enemyX = sprite.getPosition().x;
     float playerX = hero.sprite.getPosition().x;
-    float zombieX = sprite.getPosition().x;
-    float dist = std::abs(playerX - zombieX);
 
-    // 1. Выбор состояния
-    if (dist < 40.f) {
-        if (state != ATTACKING) {
-            state = ATTACKING;
-            currentFrame = 0;
+    // Считаем чистое расстояние между Евой и зомби по горизонтали
+    float distanceToPlayer = std::abs(enemyX - playerX);
+
+    float zombieSpeed = 0.035f; // Чуть замедлили физическую скорость соседа для зловещего эффекта
+    bool isMoving = false;
+
+    // --- ФИЗИКА КОЛЛИЗИИ: Идем, ТОЛЬКО если Ева дальше, чем в 60 пикселях ---
+    if (distanceToPlayer > 60.f) {
+        isMoving = true;
+        if (enemyX < playerX) {
+            sprite.move(zombieSpeed * time, 0);
+        }
+        else {
+            sprite.move(-zombieSpeed * time, 0);
         }
     }
-    else {
-        state = WALKING;
-    }
 
-    // 2. Логика анимации и перемещения
-    if (state == ATTACKING) {
+    // --- СТАБИЛЬНЫЙ НЕЗАВИСИМЫЙ ТАЙМЕР АНИМАЦИИ ---
+    if (isMoving) {
+        sprite.setTexture(textureIdle);
+
+        // Кадры меняются размеренно — раз в 180 миллисекунд (никакой дикой скорости!)
+        if (animClock.getElapsedTime().asMilliseconds() > 180) {
+            currentFrame += 1.f;
+            if (currentFrame >= 4.f) currentFrame = 0.f;
+            animClock.restart();
+        }
+
+        int frameOffset = int(currentFrame) * w;
+        if (enemyX < playerX) {
+            sprite.setTextureRect(sf::IntRect(frameOffset, 0, w, h)); // Идет направо
+        }
+        else {
+            sprite.setTextureRect(sf::IntRect(frameOffset + w, 0, -w, h)); // Идет налево
+        }
+    }
+    // Если подошел вплотную — переключается на первый кадр анимации атаки/стойки и не идет сквозь Еву
+    else {
         sprite.setTexture(textureAttack);
-        currentFrame += 0.005f * time;
-
-        // Проверка нанесения урона (в конце анимации)
-        if (currentFrame >= 3.8f) { // Почти конец анимации
-            if (timer <= 0) {
-                hero.stats.health -= damage;
-                std::wstring damageMsg = L"-" + std::to_wstring((int)damage) + L" HP";
-                hero.showMessage(damageMsg, Color::Red);
-                timer = attackCooldown;
-            }
-            if (currentFrame >= 4.0f) currentFrame = 0; // Зацикливаем атаку
-        }
-    }
-    else {
-        sprite.setTexture(textureWalk);
-        float directionX = (playerX > zombieX) ? 1.f : -1.f;
-        sprite.move(directionX * speed * time, 0);
-
-        currentFrame += 0.004f * time;
-        if (currentFrame >= 4.0f) currentFrame = 0;
+        if (enemyX < playerX) sprite.setTextureRect(sf::IntRect(0, 0, w, h));
+        else sprite.setTextureRect(sf::IntRect(w, 0, -w, h));
     }
 
-    if (timer > 0) timer -= time;
-
-    // 3. Отрисовка кадра и поворот
-    int frame = int(currentFrame);
-    if (frame > 3) frame = 3;
-
-    if (playerX > sprite.getPosition().x) {
-        sprite.setTextureRect(IntRect(w * frame, 0, w, h));
-    }
-    else {
-        sprite.setTextureRect(IntRect(w * frame + w, 0, -w, h));
-    }
-
-    // Обновляем позицию полоски ХП над головой зомби
-    hpBar.update(health, 100.f, Vector2f(sprite.getPosition().x, sprite.getPosition().y - 10));
 }
 
-void Enemy::draw(RenderWindow& window) {
+
+void Enemy::draw(sf::RenderWindow& window) {
     if (health > 0) {
-        window.draw(sprite);
-        hpBar.draw(window); // ТЕПЕРЬ ПОЛОСКА БУДЕТ ВИДНА
+        window.draw(sprite); // Отрисовка фигуры мистера Грина в коридоре
     }
 }
+

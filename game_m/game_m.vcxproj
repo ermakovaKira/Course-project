@@ -141,6 +141,7 @@
     <ClInclude Include="DialogueSystem.h" />
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="GameManager.h" />
+    <ClInclude Include="HallwayScene.h" />
     <ClInclude Include="HealthBar.h" />
     <ClInclude Include="Interactable.h" />
     <ClInclude Include="Inventory.h" />
