@@ -127,7 +127,28 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="game_m.cpp" />
+    <ClCompile Include="Enemy.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="HealthBar.cpp" />
+    <ClCompile Include="Player.cpp" />
+    <ClCompile Include="Stats.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ApartmentScene.h" />
+    <ClInclude Include="Bullet.h" />
+    <ClInclude Include="Config.h" />
+    <ClInclude Include="DialogueDatabase.h" />
+    <ClInclude Include="DialogueSystem.h" />
+    <ClInclude Include="Enemy.h" />
+    <ClInclude Include="GameManager.h" />
+    <ClInclude Include="HealthBar.h" />
+    <ClInclude Include="Interactable.h" />
+    <ClInclude Include="Inventory.h" />
+    <ClInclude Include="ItemDatabase.h" />
+    <ClInclude Include="NPC.h" />
+    <ClInclude Include="Player.h" />
+    <ClInclude Include="Stats.h" />
+    <ClInclude Include="StoryManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
