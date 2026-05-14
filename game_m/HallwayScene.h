@@ -5,7 +5,7 @@
 #include <cmath>
 #include <iostream>
 #include "Enemy.h"
-#include "NPC.h" // Подключили класс Марка
+#include "NPC.h" 
 #include "Interactable.h"
 #include "Player.h"
 #include "StoryManager.h"
@@ -18,7 +18,7 @@ public:
     sf::Sprite bgSprite;
 
     Enemy zombie;
-    NPC mark; // Марк теперь присутствует в подъезде!
+    NPC mark;
     Interactable vendingMachine;
     Interactable utilityDoor;
 
@@ -29,7 +29,7 @@ public:
 
     HallwayScene()
         : zombie("zombie_walk.png", "zombie_attack.png", sf::Vector2f(-1000, -1000), 150, 236),
-        mark("npc_sprite.png", sf::Vector2f(-1000, -1000)), // Прячем до загрузки уровня
+        mark("npc_sprite.png", sf::Vector2f(-1000, -1000)),
         vendingMachine("laptop_sprite.png", sf::Vector2f(-1000, -1000), "vending", 40.f, 50.f),
         utilityDoor("laptop_sprite.png", sf::Vector2f(-1000, -1000), "utility_door", 45.f, 90.f)
     {
@@ -49,17 +49,13 @@ public:
         bgSprite.setTexture(bgTex);
         bgSprite.setScale(800.f / bgSprite.getLocalBounds().width, 400.f / bgSprite.getLocalBounds().height);
 
-        // Спавним мистера Грина слева
         zombie.sprite.setPosition(180, 210);
         zombie.health = 50.f;
 
-        // Спавним Марка РЯДОМ С ЕВОЙ (чуть правее неё, у косяка двери)
         mark.sprite.setPosition(770, 195);
-        // Синхронизируем рост Марка
         float currentScale = 195.0f / mark.sprite.getLocalBounds().height;
         mark.sprite.setScale(currentScale, currentScale);
 
-        // Настройка скрытых коллизий автомата и подсобки
         vendingMachine.texture.loadFromFile("laptop_sprite.png");
         vendingMachine.sprite.setTexture(vendingMachine.texture, true);
         vendingMachine.sprite.setPosition(420, 210);
@@ -71,13 +67,11 @@ public:
         utilityDoor.sprite.setScale(70.f / utilityDoor.sprite.getLocalBounds().width, 170.f / utilityDoor.sprite.getLocalBounds().height);
 
         isLoaded = true;
-        std::cout << "SUCCESS: HallwayScene loaded with Mark!" << std::endl;
     }
 
     void update(float time, Player& hero, StoryManager& story, DialogueSystem& dialogue) {
         if (!isLoaded) return;
 
-        // ВРАГ НАЧИНАЕТ ХОДИТЬ ТОЛЬКО ПОСЛЕ ТОГО, КАК ПРОИГРАЛСЯ СЮЖЕТНЫЙ ДИАЛОГ!
         if (story.hallwayIntroPlayed && !dialogue.isOpen) {
             zombie.update(time, hero);
         }
@@ -88,8 +82,11 @@ public:
         }
 
         float pX = hero.sprite.getPosition().x;
+
+        // БЕЗОПАСНАЯ ПРОВЕРКА: Проверяем, существует ли ключ "Flash" в словаре через встроенный метод count()
+        bool hasFlash = (hero.inventory.items.count("Flash") > 0);
         nearMachine = (std::abs(pX - vendingMachine.sprite.getPosition().x) < 50.f);
-        vendingMachine.showHint = (nearMachine && !dialogue.isOpen && hero.inventory.items["Flash"] == 0);
+        vendingMachine.showHint = (nearMachine && !dialogue.isOpen && !hasFlash);
 
         nearDoor = (std::abs(pX - utilityDoor.sprite.getPosition().x) < 50.f);
         utilityDoor.showHint = (nearDoor && !dialogue.isOpen);
@@ -102,25 +99,35 @@ public:
             keysPicked = true;
             hero.inventory.addItem("Keys", 1);
             dialogue.startDialogue(dialogueDb.getDialogue("hallway_find_keys"));
-            hero.showMessage(L"ПОЛУЧЕНЫ: СВЯЗКА КЛЮЧЕЙ", sf::Color::Green);
             return;
         }
 
-        if (nearMachine && hero.inventory.items["Flash"] == 0) {
+        // БЕЗОПАСНЫЙ ОБЫСК АВТОМАТА: Используем встроенный метод count()
+        bool hasFlash = (hero.inventory.items.count("Flash") > 0);
+        if (nearMachine && !hasFlash) {
             dialogue.startDialogue(dialogueDb.getDialogue("hallway_vending"));
             hero.inventory.addItem("Flash", 1);
-            hero.showMessage(L"ПОЛУЧЕН: ЭНЕРГЕТИК FLASH", sf::Color::Cyan);
+            return;
         }
 
+        // БЕЗОПАСНЫЙ ОБЫСК ПОДСОБКИ
         if (nearDoor) {
             if (!keysPicked) {
                 dialogue.startDialogue(dialogueDb.getDialogue("hallway_door_locked"));
             }
-            else if (keysPicked && hero.inventory.items["Ammo"] == 15) {
-                dialogue.startDialogue(dialogueDb.getDialogue("hallway_door_open"));
-                hero.inventory.addItem("Ammo", 30);
-                hero.showMessage(L"ПОПОЛНЕНИЕ: +30 ПАТРОНОВ", sf::Color::Green);
+            else if (keysPicked) {
+                // Проверяем количество патронов, если они есть в словаре
+                int currentAmmo = 0;
+                if (hero.inventory.items.count("Ammo") > 0) {
+                    currentAmmo = hero.inventory.items["Ammo"];
+                }
+
+                if (currentAmmo <= 15) {
+                    dialogue.startDialogue(dialogueDb.getDialogue("hallway_door_open"));
+                    hero.inventory.addItem("Ammo", 30);
+                }
             }
+            return;
         }
     }
 
@@ -132,7 +139,7 @@ public:
         if (vendingMachine.showHint) vendingMachine.draw(window);
         if (utilityDoor.showHint) utilityDoor.draw(window);
 
-        mark.draw(window); // Рисуем Марка в подъезде
+        mark.draw(window);
 
         if (zombie.health > 0) {
             zombie.draw(window);
@@ -147,4 +154,3 @@ public:
 };
 
 #endif
-

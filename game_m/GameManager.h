@@ -13,6 +13,7 @@
 #include "DialogueDatabase.h"
 #include "ApartmentScene.h"
 #include "HallwayScene.h" 
+#include "Inventory.h" 
 
 class GameManager {
 private:
@@ -38,7 +39,10 @@ private:
     sf::Font questFont;
     sf::Text questText;
 
-    // Скрытые буферные переменные для задержки вывода уведомлений о вещах
+    // ПЕРЕМЕННЫЕ ИНВЕНТАРЯ В ДВИЖКЕ
+    bool showInventory;              // Флаг: открыт ли рюкзак прямо сейчас
+    sf::RectangleShape inventoryBox; // Задний фон окна сумки
+
     bool pendingMedkitMessage;
     bool pendingGlockMessage;
 
@@ -63,6 +67,14 @@ public:
         hero.inventory.loadItemTexture("Ammo", "icons/ammo.png");
         hero.inventory.addItem("Laptop", 1);
 
+        // Инициализация окна инвентаря на экране
+        showInventory = false;
+        inventoryBox.setSize(sf::Vector2f(360.f, 180.f));
+        inventoryBox.setFillColor(sf::Color(20, 20, 20, 220)); // Стильный полупрозрачный фон
+        inventoryBox.setOutlineThickness(2.f);
+        inventoryBox.setOutlineColor(sf::Color(255, 200, 50, 200)); // Золотая RPG-рамка
+        inventoryBox.setPosition(220.f, 110.f); // Центрируем окно рюкзака
+
         pendingMedkitMessage = false;
         pendingGlockMessage = false;
 
@@ -76,11 +88,7 @@ public:
 
         float targetWidth = 440.f;
         float targetHeight = 32.f;
-        questBoxSprite.setScale(
-            targetWidth / questBoxSprite.getLocalBounds().width,
-            targetHeight / questBoxSprite.getLocalBounds().height
-        );
-
+        questBoxSprite.setScale(targetWidth / questBoxSprite.getLocalBounds().width, targetHeight / questBoxSprite.getLocalBounds().height);
         questBoxSprite.setColor(sf::Color(255, 255, 255, 160));
         questBoxSprite.setPosition(180.f, 15.f);
 
@@ -128,53 +136,56 @@ private:
                 window.setView(gameView);
             }
 
-            if (!dialogue.isOpen) {
+            // Блокируем перемещение Евы, если открыт диалог ИЛИ окно инвентаря
+            if (!dialogue.isOpen && !showInventory) {
                 hero.handleInput(event);
             }
 
-            if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::E) {
-                if (dialogue.isOpen) {
-                    if (dialogue.isPrinting()) {
-                        dialogue.forceComplete();
-                    }
-                    else {
-                        dialogue.nextLine();
-
-                        // --- УМНЫЙ МОМЕНТ ЗАКРЫТИЯ ДИАЛОГА ---
-                        if (!dialogue.isOpen) {
-                            // 1. Если дочитали диалог в подъезде — только теперь активируем зомби
-                            if (story.currentScene == 2 && !story.hallwayIntroPlayed) {
-                                story.hallwayIntroPlayed = true;
-                            }
-
-                            // 2. Если дочитали диалог Марка после взлома — выводим сообщение об аптечке
-                            if (story.currentScene == 1 && story.talkedToMarkStart && pendingMedkitMessage) {
-                                hero.showMessage(L"ПОЛУЧЕНО: АПТЕЧКА МАРКА", sf::Color::Green);
-                                pendingMedkitMessage = false;
-                            }
-
-                            // 3. Если дочитали осмотр ящика — выводим сообщение о Глоке и запускаем ходьбу Марка к выходу
-                            if (story.currentScene == 1 && hero.inventory.items["Ammo"] > 0 && pendingGlockMessage) {
-                                hero.showMessage(L"ПОЛУЧЕНО: ГЛОК-17 (15 патронов)", sf::Color::Green);
-                                story.markMovingToExit = true;
-                                pendingGlockMessage = false;
-                            }
-                        }
-                    }
+            // ОБРАБОТКА НАЖАТИЯ КНОПОК ИНТЕРФЕЙСА
+            if (event.type == sf::Event::KeyPressed) {
+                // Клавиша I открывает и закрывает инвентарь (только вне диалога)
+                if (event.key.code == sf::Keyboard::I && !dialogue.isOpen) {
+                    showInventory = !showInventory;
                 }
-                else {
-                    // Перехватываем установку отложенных сообщений перед запуском диалога
-                    if (story.currentScene == 1) {
-                        if (apartmentScene.nearMark && story.readLaptopEmail && !story.talkedToMarkStart) {
-                            pendingMedkitMessage = true; // Запомним, что надо показать аптечку ПОСЛЕ разговора
+
+                // Клавиша E листает текст или запускает обыск предметов
+                if (event.key.code == sf::Keyboard::E) {
+                    if (dialogue.isOpen) {
+                        if (dialogue.isPrinting()) {
+                            dialogue.forceComplete();
                         }
-                        if (apartmentScene.nearDrawer && story.talkedToMarkStart && hero.inventory.items["Ammo"] == 0) {
-                            pendingGlockMessage = true; // Запомним, что надо показать Глок ПОСЛЕ осмотра ящика
+                        else {
+                            dialogue.nextLine();
+
+                            if (!dialogue.isOpen) {
+                                if (story.currentScene == 2 && !story.hallwayIntroPlayed) {
+                                    story.hallwayIntroPlayed = true;
+                                }
+                                if (story.currentScene == 1 && story.talkedToMarkStart && pendingMedkitMessage) {
+                                    hero.showMessage(L"ПОЛУЧЕНО: АПТЕЧКА МАРКА", sf::Color::Green);
+                                    pendingMedkitMessage = false;
+                                }
+                                if (story.currentScene == 1 && hero.inventory.items.count("Ammo") > 0 && pendingGlockMessage) {
+                                    hero.showMessage(L"ПОЛУЧЕНО: ГЛОК-17 (15 патронов)", sf::Color::Green);
+                                    story.markMovingToExit = true;
+                                    pendingGlockMessage = false;
+                                }
+                            }
                         }
-                        apartmentScene.handleInteraction(hero, story, dialogue, dialogueDb);
                     }
-                    else if (story.currentScene == 2) {
-                        hallwayScene.handleInteraction(hero, story, dialogue, dialogueDb);
+                    else if (!showInventory) { // Не обыскиваем мир, если копаемся в рюкзаке
+                        if (story.currentScene == 1) {
+                            if (apartmentScene.nearMark && story.readLaptopEmail && !story.talkedToMarkStart) {
+                                pendingMedkitMessage = true;
+                            }
+                            if (apartmentScene.nearDrawer && story.talkedToMarkStart && hero.inventory.items.count("Ammo") == 0) {
+                                pendingGlockMessage = true;
+                            }
+                            apartmentScene.handleInteraction(hero, story, dialogue, dialogueDb);
+                        }
+                        else if (story.currentScene == 2) {
+                            hallwayScene.handleInteraction(hero, story, dialogue, dialogueDb);
+                        }
                     }
                 }
             }
@@ -182,7 +193,8 @@ private:
     }
 
     void update(float time) {
-        if (!dialogue.isOpen) {
+        // Мир замирает во время диалогов и открытого рюкзака
+        if (!dialogue.isOpen && !showInventory) {
             hero.update(time);
         }
         dialogue.update(time);
@@ -192,7 +204,7 @@ private:
         if (story.currentScene == 1) {
             apartmentScene.update(time, hero, story);
 
-            if (hero.sprite.getPosition().x < 15.f && story.talkedToMarkStart && hero.inventory.items["Ammo"] > 0) {
+            if (hero.sprite.getPosition().x < 15.f && story.talkedToMarkStart && hero.inventory.items.count("Ammo") > 0) {
                 hallwayScene.init();
                 story.currentScene = 2;
                 hero.sprite.setPosition(730, 210);
@@ -206,7 +218,7 @@ private:
 
             hallwayScene.update(time, hero, story, dialogue);
 
-            if (!dialogue.isOpen && hero.isShooting && hallwayScene.zombie.health > 0) {
+            if (!dialogue.isOpen && !showInventory && hero.isShooting && hallwayScene.zombie.health > 0) {
                 if (int(hero.currentFrame) == 0 && !bulletHitRegistered) {
                     float playerX = hero.sprite.getPosition().x;
                     float zombieX = hallwayScene.zombie.sprite.getPosition().x;
@@ -223,8 +235,6 @@ private:
             }
         }
 
-        // --- УПРАВЛЕНИЕ КВЕСТАМИ БЕЗ СПОЙЛЕРОВ ---
-        // Если идет диалог — на плашке висит ТЕКУЩЕЕ (старое) задание, а новое не спойлерится заранее!
         if (!dialogue.isOpen) {
             questText.setString(story.getCurrentQuestText());
             sf::FloatRect textBounds = questText.getLocalBounds();
@@ -260,6 +270,12 @@ private:
 
         window.draw(questBoxSprite);
         window.draw(questText);
+
+        // ОТРИСОВКА ОКНА ИНВЕНТАРЯ ПОВЕРХ ИГРЫ
+        if (showInventory) {
+            // Вызываем графический метод отрисовки напрямую из рюкзака Евы, передавая шрифт квестов
+            hero.inventory.drawUI(window, questFont);
+        }
 
         if (dialogue.isOpen) {
             dialogue.draw(window);
