@@ -6,7 +6,7 @@ Player::Player(std::string pathIdle, std::string pathShoot, int width, int heigh
     textureIdle.loadFromFile(pathIdle);
     textureShoot.loadFromFile(pathShoot);
 
-    // Бритвенная чёткость для HD-пикселей Евы
+
     textureIdle.setSmooth(false);
     textureShoot.setSmooth(false);
 
@@ -14,7 +14,7 @@ Player::Player(std::string pathIdle, std::string pathShoot, int width, int heigh
     h = height;
 
     currentFrame = 0.f;
-    speed = 0.10f; // Слегка уменьшили физическую скорость, чтобы походка была реалистичной
+    speed = 0.10f; 
     isShooting = false;
     faceRight = true;
     db = nullptr;
@@ -28,10 +28,12 @@ Player::Player(std::string pathIdle, std::string pathShoot, int width, int heigh
     messageTimer = 0.f;
     if (messageFont.loadFromFile("PixeloidSans.ttf")) {
         messageText.setFont(messageFont);
-        messageText.setCharacterSize(16); // Сделали чуть крупнее для читаемости
+        messageText.setCharacterSize(16); 
         messageText.setOutlineThickness(1.5f);
         messageText.setOutlineColor(sf::Color::Black);
     }
+    isFlashActive = false;
+    flashTimer = 0.f;
 }
 
 void Player::handleInput(sf::Event& event) {
@@ -60,101 +62,106 @@ void Player::handleInput(sf::Event& event) {
 }
 
 void Player::update(float time) {
+
+    if (isFlashActive) {
+        speed = 0.15f; 
+        flashTimer -= time;
+        if (flashTimer <= 0.f) {
+            isFlashActive = false;
+            speed = 0.10f;
+            showMessage(L"Действие бодрящего напитка закончилось.", sf::Color::White);
+        }
+    }
+    else {
+        speed = 0.10f; 
+    }
+
+
     if (!isShooting) {
-        bool isMoving = false;
-        sf::Vector2f position = sprite.getPosition();
-
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
-            position.x -= speed * time;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left) || sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+            sprite.move(-speed * time, 0.f);
             faceRight = false;
-            isMoving = true;
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
-            position.x += speed * time;
-            faceRight = true;
-            isMoving = true;
-        }
 
-        if (position.x < 0.f) position.x = 0.f;
-        if (position.x > 800.f - (w * sprite.getScale().x)) position.x = 800.f - (w * sprite.getScale().x);
 
-        sprite.setPosition(position);
-
-        // --- РАЗМЕРЕННЫЙ КИНЕМАТОГРАФИЧНЫЙ ТАЙМЕР ХОДЬБЫ ---
-        if (isMoving) {
+            if (animationClock.getElapsedTime().asMilliseconds() > 110) {
+                currentFrame += 1.f;
+                if (currentFrame >= 4.f) currentFrame = 0.f;
+                animationClock.restart();
+            }
             sprite.setTexture(textureIdle);
+            sprite.setTextureRect(sf::IntRect(int(currentFrame) * w + w, 0, -w, h));
+        }
+        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right) || sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+            sprite.move(speed * time, 0.f);
+            faceRight = true; 
 
-            // Замедлили смену кадров до 160 мс — ноги будут переставляться плавно и неторопливо
-            if (animationClock.getElapsedTime().asMilliseconds() > 160) {
+            if (animationClock.getElapsedTime().asMilliseconds() > 110) {
                 currentFrame += 1.f;
                 if (currentFrame >= 4.f) currentFrame = 0.f;
                 animationClock.restart();
             }
 
-            int frameOffset = int(currentFrame) * w;
-
-            if (faceRight) {
-                sprite.setTextureRect(sf::IntRect(frameOffset, 0, w - 1, h));
-            }
-            else {
-                sprite.setTextureRect(sf::IntRect(frameOffset + w - 1, 0, -(w - 1), h));
-            }
+            sprite.setTexture(textureIdle);
+            sprite.setTextureRect(sf::IntRect(int(currentFrame) * w, 0, w, h));
         }
         else {
-            // При остановке мгновенно и красиво возвращаем Еву в позу покоя
+
             sprite.setTexture(textureIdle);
-            currentFrame = 0.f;
-            if (faceRight) {
-                sprite.setTextureRect(sf::IntRect(0, 0, w - 1, h));
-            }
-            else {
-                sprite.setTextureRect(sf::IntRect(w - 1, 0, -(w - 1), h));
-            }
+            if (faceRight) sprite.setTextureRect(sf::IntRect(0, 0, w, h));
+            else sprite.setTextureRect(sf::IntRect(w, 0, -w, h));
         }
     }
-    // Скорость вспышки выстрела оставляем четкой и быстрой (70 миллисекунд)
-    else {
+
+
+    if (isShooting) {
         sprite.setTexture(textureShoot);
 
         if (animationClock.getElapsedTime().asMilliseconds() > 70) {
             currentFrame += 1.f;
-            if (currentFrame >= 4.f) {
-                isShooting = false;
-                currentFrame = 0.f;
-                sprite.setTexture(textureIdle);
-            }
             animationClock.restart();
         }
 
-        if (isShooting) {
+
+        if (currentFrame < 4.f) {
             int frameOffset = int(currentFrame) * w;
-            if (faceRight) {
-                sprite.setTextureRect(sf::IntRect(frameOffset, 0, w - 1, h));
-            }
-            else {
-                sprite.setTextureRect(sf::IntRect(frameOffset + w - 1, 0, -(w - 1), h));
-            }
+            if (faceRight) sprite.setTextureRect(sf::IntRect(frameOffset, 0, w, h));
+            else sprite.setTextureRect(sf::IntRect(frameOffset + w, 0, -w, h));
+        }
+        else {
+  
+            isShooting = false;
+            currentFrame = 0.f;
         }
     }
+
+
     if (messageTimer > 0.f) {
-        messageTimer -= 0.5f * time; 
+        messageTimer -= 0.5f * time;
     }
+
+ 
+    sprite.setPosition(sprite.getPosition().x, 210.f);
+
+
+    if (sprite.getPosition().x < 0.f) sprite.setPosition(0.f, 210.f);
+    if (sprite.getPosition().x > 1530.f) sprite.setPosition(1530.f, 210.f);
 }
+
 
 void Player::draw(sf::RenderWindow& window) {
     window.draw(sprite);
-    drawMessage(window); // Рисуем всплывающее уведомление
+    drawMessage(window);
 }
 
 void Player::showMessage(std::wstring message, sf::Color color) {
     messageText.setString(message);
     messageText.setFillColor(color);
-    messageTimer = 250.f; // Время жизни надписи на экране (~2.5 секунды)
+    messageTimer = 250.f;
 }
 
 void Player::drawMessage(sf::RenderWindow& window) {
     if (messageTimer > 0.f) {
-        // Рассчитываем позицию: строго над головой Евы (на 40 пикселей выше её спрайта)
+
         float centerX = sprite.getPosition().x + (w * sprite.getScale().x) / 2.f;
         float topY = sprite.getPosition().y - 40.f;
 

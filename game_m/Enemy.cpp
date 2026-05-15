@@ -32,13 +32,13 @@ void Enemy::update(float time, Player& hero) {
     float enemyX = sprite.getPosition().x;
     float playerX = hero.sprite.getPosition().x;
 
-    // Считаем чистое расстояние между Евой и зомби по горизонтали
+
     float distanceToPlayer = std::abs(enemyX - playerX);
 
-    float zombieSpeed = 0.035f; // Чуть замедлили физическую скорость соседа для зловещего эффекта
+    float zombieSpeed = 0.035f; 
     bool isMoving = false;
 
-    // --- ФИЗИКА КОЛЛИЗИИ: Идем, ТОЛЬКО если Ева дальше, чем в 60 пикселях ---
+
     if (distanceToPlayer > 60.f) {
         isMoving = true;
         if (enemyX < playerX) {
@@ -49,11 +49,10 @@ void Enemy::update(float time, Player& hero) {
         }
     }
 
-    // --- СТАБИЛЬНЫЙ НЕЗАВИСИМЫЙ ТАЙМЕР АНИМАЦИИ ---
     if (isMoving) {
         sprite.setTexture(textureIdle);
 
-        // Кадры меняются размеренно — раз в 180 миллисекунд (никакой дикой скорости!)
+
         if (animClock.getElapsedTime().asMilliseconds() > 180) {
             currentFrame += 1.f;
             if (currentFrame >= 4.f) currentFrame = 0.f;
@@ -62,13 +61,13 @@ void Enemy::update(float time, Player& hero) {
 
         int frameOffset = int(currentFrame) * w;
         if (enemyX < playerX) {
-            sprite.setTextureRect(sf::IntRect(frameOffset, 0, w, h)); // Идет направо
+            sprite.setTextureRect(sf::IntRect(frameOffset, 0, w, h)); 
         }
         else {
-            sprite.setTextureRect(sf::IntRect(frameOffset + w, 0, -w, h)); // Идет налево
+            sprite.setTextureRect(sf::IntRect(frameOffset + w, 0, -w, h)); 
         }
     }
-    // Если подошел вплотную — переключается на первый кадр анимации атаки/стойки и не идет сквозь Еву
+
     else {
         sprite.setTexture(textureAttack);
         if (enemyX < playerX) sprite.setTextureRect(sf::IntRect(0, 0, w, h));
@@ -80,7 +79,7 @@ void Enemy::update(float time, Player& hero) {
 
 void Enemy::draw(sf::RenderWindow& window) {
     if (health > 0) {
-        window.draw(sprite); // Отрисовка фигуры мистера Грина в коридоре
+        window.draw(sprite); 
     }
 }
 

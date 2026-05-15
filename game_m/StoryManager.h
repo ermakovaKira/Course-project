@@ -1,49 +1,59 @@
-#pragma once // Защищает файлы от дублирования перечислений (Убирает ошибку C2011)
+#ifndef STORY_MANAGER_H
+#define STORY_MANAGER_H
 
+#pragma once
 #include <string>
-#include "Config.h"
-// Возвращаем enum на место, теперь он объявлен правильно и безопасно!
-
+#include "Config.h" 
 
 class StoryManager {
 public:
     int currentScene;
     Difficulty difficulty;
 
-    // Сюжетные переменные Сцены 1 (Квартира)
-    bool readLaptopEmail;
-    bool talkedToMarkStart;
-    bool markMovingToExit;
+    // --- СЮЖЕТНЫЕ ПЕРЕМЕННЫЕ АКТА I (КВАРТИРА И ПОДЪЕЗД) ---
+    bool noteRead;               // Прочитана ли записка Марка на кухонном столе
+    bool readLaptopEmail;        // Взломан ли стационарный ПК
+    bool talkedToMarkStart;      // Разговор с Марком состоялся
+    bool markMovingToExit;       // Марк идёт в прихожую к шкафу за Глоком
 
-    // Сюжетные переменные Сцены 2 (Подъезд)
-    bool hallwayIntroPlayed;
+    bool hallwayIntroPlayed;     // Диалог в подъезде  прочитан
+
 
     StoryManager(Difficulty diff = NORMAL) {
         currentScene = 1;
         difficulty = diff;
+
+        noteRead = false;
         readLaptopEmail = false;
         talkedToMarkStart = false;
         markMovingToExit = false;
+
         hallwayIntroPlayed = false;
     }
 
-    // ДЕТАЛИЗИРОВАННЫЙ КВЕСТ-ТРЕКЕР С КОНКРЕТНЫМИ ШАГАМИ ДЛЯ ПОЛЬЗОВАТЕЛЯ
+
     std::wstring getCurrentQuestText() {
         if (currentScene == 1) {
+            if (!noteRead) {
+                return L"Задание: Исследовать кухню и осмотреть обеденный стол";
+            }
             if (!readLaptopEmail) {
-                return L"Задание: Взломать брандмауэр и узел связи на ПК";
+                return L"Задание: Взломать брандмауэр и проверить сеть на ПК";
             }
             if (!talkedToMarkStart) {
-                return L"Задание: Поговорить с Марком и сообщить о смерти семьи";
+                return L"Задание: Рассказать Марку о трагедии с родителями";
             }
-            return L"Задание: Открыть скрытый ящик стола и забрать Глок-17";
+            return L"Задание: Ввести код, открыть шкаф в прихожей и забрать Глок-17";
         }
         else if (currentScene == 2) {
             if (!hallwayIntroPlayed) {
-                return L"Задание: Осмотреться в коридоре и выслушать Марка";
+                return L"Задание: Осмотреться в темном коридоре подъезда";
             }
-            return L"Задание: Уничтожить мистера Грина и забрать связку ключей";
+            return L"Задание: Уничтожить дядю Толю и забрать связку ключей";
         }
-        return L"Задание: Найти выход из жилого комплекса";
+
+        return L"Задание: Найти выход из жилого комплекса 'Фидес'";
     }
 };
+
+#endif

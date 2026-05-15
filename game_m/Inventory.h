@@ -40,9 +40,9 @@ public:
         return items[name];
     }
 
-    // --- КРАСИВЫЙ ГРАФИЧЕСКИЙ ИНВЕНТАРЬ ПРЯМО ЗДЕСЬ ---
+
     inline void drawUI(sf::RenderWindow& window, sf::Font& font) {
-        // Подложка рюкзака Евы
+
         sf::RectangleShape inventoryBox(sf::Vector2f(360.f, 180.f));
         inventoryBox.setFillColor(sf::Color(20, 20, 20, 220));
         inventoryBox.setOutlineThickness(2.f);
@@ -50,7 +50,7 @@ public:
         inventoryBox.setPosition(220.f, 110.f);
         window.draw(inventoryBox);
 
-        // Золотой заголовок
+
         sf::Text invTitle(L"ИНВЕНТАРЬ ЕВЫ", font, 13);
         invTitle.setFillColor(sf::Color(255, 215, 0));
         invTitle.setOrigin(invTitle.getLocalBounds().width / 2.f, 0);
@@ -60,13 +60,13 @@ public:
         float startSlotX = 250.f;
         float slotY = 165.f;
 
-        // Безопасный классический проход по вещам рюкзака
+
         for (auto it = items.begin(); it != items.end(); ++it) {
             std::string itemName = it->first;
             int itemCount = it->second;
 
             if (itemCount > 0) {
-                // Квадратная рамка слота ячейки
+
                 sf::RectangleShape slotBorder(sf::Vector2f(42.f, 42.f));
                 slotBorder.setFillColor(sf::Color(10, 10, 10, 200));
                 slotBorder.setOutlineThickness(1.f);
@@ -74,7 +74,7 @@ public:
                 slotBorder.setPosition(startSlotX, slotY);
                 window.draw(slotBorder);
 
-                // Отрисовка пиксельной иконки (Medkit, Ammo, Flash)
+
                 if (textures.count(itemName) > 0) {
                     sf::Sprite itemIcon;
                     itemIcon.setTexture(textures[itemName]);
@@ -88,7 +88,7 @@ public:
                     window.draw(itemIcon);
                 }
 
-                // Цифра количества вещей в углу ячейки
+
                 std::wstring countWStr = std::to_wstring(static_cast<long>(itemCount));
                 sf::Text countText(countWStr, font, 10);
                 countText.setFillColor(sf::Color::White);

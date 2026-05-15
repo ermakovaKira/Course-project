@@ -1,55 +1,90 @@
 #ifndef NPC_H
 #define NPC_H
 
+#pragma once
 #include <SFML/Graphics.hpp>
-#include <string>
-#include <vector>
-#include "DialogueSystem.h" // Для поддержки структуры DialogueLine
+#include <iostream>
 
 class NPC {
 public:
     sf::Sprite sprite;
-    sf::Texture texture;
-    std::vector<DialogueLine> dialogueLines; // Теперь используем структуру из базы диалогов
-
-    sf::Text hintText;
-    sf::Font font;
+    sf::Texture staticTex;
+    sf::Texture moveTex;
+    bool isMoveTexLoaded;
     bool showHint;
+    float health;
 
-    NPC(std::string texturePath, sf::Vector2f pos) {
-        // --- ВНУТРИ КОНСТРУКТОРА NPC.H ---
-        if (texture.loadFromFile(texturePath)) {
-            texture.setSmooth(false);
-            sprite.setTexture(texture);
+    sf::Sprite staticSprite;
+    sf::Sprite moveSprite;
+    bool isMovingNow;
 
-            // МАРК ЧУТЬ ВЫШЕ ЕВЫ (195 пикселей вместо 180)
-            float targetHeight = 195.0f;
-            float currentScale = targetHeight / sprite.getLocalBounds().height;
-            sprite.setScale(currentScale, currentScale);
+    NPC() : isMoveTexLoaded(false), showHint(false), health(100.f), isMovingNow(false) {}
 
-            sprite.setPosition(pos);
+    void init(std::string staticFile, std::string moveFile, sf::Vector2f startPos) {
+        if (!staticTex.loadFromFile(staticFile)) {
+            std::cout << "Error: " << staticFile << " not found!" << std::endl;
+        }
+        staticTex.setSmooth(false);
+
+        if (!moveTex.loadFromFile(moveFile)) {
+            std::cout << "Error: " << moveFile << " not found!" << std::endl;
+            isMoveTexLoaded = false;
+        }
+        else {
+            moveTex.setSmooth(false);
+            isMoveTexLoaded = true;
         }
 
-        showHint = false;
+        float targetHeight = 189.f;
 
-        // Настройка текста подсказки "Нажмите E" (оставляем как было)
-        if (font.loadFromFile("PixeloidSans.ttf")) {
-            hintText.setFont(font);
-            hintText.setString(L"Нажмите E");
-            hintText.setCharacterSize(14);
-            hintText.setFillColor(sf::Color::Yellow);
-            hintText.setOrigin(hintText.getLocalBounds().width / 2, 0);
+        staticSprite.setTexture(staticTex);
+        int staticW = static_cast<int>(staticTex.getSize().x);
+        int staticH = static_cast<int>(staticTex.getSize().y);
+        staticSprite.setTextureRect(sf::IntRect(0, 0, staticW, staticH));
+        staticSprite.setOrigin(static_cast<float>(staticW) / 2.f, static_cast<float>(staticH));
+        float scaleFactorStatic = targetHeight / staticSprite.getLocalBounds().height;
+        staticSprite.setScale(scaleFactorStatic, scaleFactorStatic);
+        staticSprite.setPosition(startPos);
+
+        if (isMoveTexLoaded) {
+            moveSprite.setTexture(moveTex);
+            moveSprite.setTextureRect(sf::IntRect(0, 0, 150, 234));
+            moveSprite.setOrigin(75.f, 234.f);
+            float scaleFactorMove = targetHeight / 234.f;
+            moveSprite.setScale(scaleFactorMove, scaleFactorMove);
+        }
+        moveSprite.setPosition(startPos);
+
+        isMovingNow = false;
+    }
+
+    void setState(bool isMoving, int frameIndex = 0) {
+        isMovingNow = isMoving;
+        if (isMoving && isMoveTexLoaded) {
+            moveSprite.setTextureRect(sf::IntRect(frameIndex * 150, 0, 150, 234));
         }
     }
 
+    void setPosition(float x, float y) {
+        staticSprite.setPosition(x, y);
+        moveSprite.setPosition(x, y);
+    }
+
+    sf::Vector2f getPosition() {
+        return isMovingNow ? moveSprite.getPosition() : staticSprite.getPosition();
+    }
+
+    void move(float offsetX, float offsetY) {
+        staticSprite.move(offsetX, offsetY);
+        moveSprite.move(offsetX, offsetY);
+    }
 
     void draw(sf::RenderWindow& window) {
-        window.draw(sprite);
-        // Показываем текст только когда флаг активен
-        if (showHint) {
-            // Позиционируем над головой (75.f — фиксированная ширина)
-            hintText.setPosition(sprite.getPosition().x + (75.0f / 2.0f), sprite.getPosition().y - 30);
-            window.draw(hintText);
+        if (isMovingNow && isMoveTexLoaded) {
+            window.draw(moveSprite);
+        }
+        else {
+            window.draw(staticSprite);
         }
     }
 };

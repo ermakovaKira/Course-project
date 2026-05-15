@@ -4,18 +4,18 @@ HealthBar::HealthBar(float width, float height, sf::Color color) {
     maxWidth = width;
 
     back.setSize({ width, height });
-    back.setFillColor(sf::Color(50, 50, 50, 200)); // Полупрозрачный серый
+    back.setFillColor(sf::Color(50, 50, 50, 200)); 
 
     front.setSize({ width, height });
     front.setFillColor(color);
 }
 
 void HealthBar::update(float currentHp, float maxHp, sf::Vector2f position) {
-    // Двигаем полоску (центрируем над объектом, например на 20 пикселей выше)
+
     back.setPosition(position.x, position.y - 20);
     front.setPosition(position.x, position.y - 20);
 
-    // Рассчитываем новую ширину
+
     float percentage = currentHp / maxHp;
     if (percentage < 0) percentage = 0;
     front.setSize({ maxWidth * percentage, front.getSize().y });

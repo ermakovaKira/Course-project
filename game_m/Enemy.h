@@ -6,8 +6,7 @@
 #include "Player.h"
 #include "HealthBar.h"
 
-// Простая структура или класс HealthBar, если он у тебя вынесен отдельно
-// Если класс HealthBar объявлен в другом файле, убедись, что он подключен
+
 class Enemy {
 public:
     sf::Clock animClock;
@@ -15,14 +14,13 @@ public:
     sf::Texture textureIdle;
     sf::Texture textureAttack;
 
-    int w, h;            // Размеры кадра анимации
-    float currentFrame;  // Текущий кадр
-    float health;        // Здоровье зомби
+    int w, h;          
+    float currentFrame; 
+    float health;        
 
-    // Объявляем полоску здоровья для зомби
     HealthBar hpBar;
 
-    // Объявляем полноценный конструктор класса
+
     Enemy(std::string pathIdle, std::string pathAttack, sf::Vector2f pos, int width, int height);
 
     void update(float time, Player& hero);

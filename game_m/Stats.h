@@ -7,7 +7,7 @@ public:
     float hunger;
     bool isAlive;
 
-    Stats(); // Конструктор
+    Stats(); 
     void update(float time);
     void eat(float amount);
 };

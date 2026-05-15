@@ -12,7 +12,7 @@ private:
 public:
     HealthBar(float width, float height, sf::Color color);
 
-    // Обновление позиции и размера (нужно знать текущее HP и позицию объекта)
+
     void update(float currentHp, float maxHp, sf::Vector2f position);
 
     // Отрисовка

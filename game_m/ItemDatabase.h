@@ -6,8 +6,8 @@
 #include "Config.h"
 
 struct ItemProps {
-    float effectValue; // HP для аптечки, сытость для сэндвича, бафф для энергетика
-    int stackSize;     // Максимальный размер стака
+    float effectValue;
+    int stackSize;     
 };
 
 class ItemDatabase {
@@ -18,8 +18,8 @@ public:
         if (diff == EASY) {
             data["Medkit"] = { 50.f, 10 };
             data["Ammo"] = { 1.f, 90 };
-            data["Flash"] = { 20.f, 5 };    // Скорость бега на изи дает больший буст
-            data["Sandwich"] = { 30.f, 10 }; // Восстановление сытости
+            data["Flash"] = { 20.f, 5 };   
+            data["Sandwich"] = { 30.f, 10 }; 
         }
         else if (diff == NORMAL) {
             data["Medkit"] = { 30.f, 5 };
@@ -34,7 +34,7 @@ public:
             data["Sandwich"] = { 5.f, 2 };
         }
 
-        // Квестовые и технические предметы (не зависят от сложности)
+
         data["Laptop"] = { 0.f, 1 };
         data["USB_Adapter"] = { 0.f, 1 };
         data["Stimulator"] = { 0.f, 1 };

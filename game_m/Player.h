@@ -5,8 +5,7 @@
 
 #include <SFML/Graphics.hpp>
 #include <string>
-#include "Inventory.h" // Подключаем твой единственный файл инвентаря
-
+#include "Inventory.h" 
 class Player {
 public:
     sf::Sprite sprite;
@@ -23,12 +22,14 @@ public:
     PlayerStats stats;
     class ItemDatabase* db;
 
-    // --- ПЕРЕМЕННЫЕ ДЛЯ НЕЗАВИСИМОЙ АНИМАЦИИ И УВЕДОМЛЕНИЙ ---
-    sf::Clock animationClock; // Личные часы плавности ходьбы Евы
+
+    sf::Clock animationClock;
 
     sf::Text messageText;
     sf::Font messageFont;
-    float messageTimer;       // Таймер всплывающих сообщений
+    float messageTimer;      
+    float flashTimer;      
+    bool isFlashActive;
 
     Player(std::string pathIdle, std::string pathShoot, int width, int height);
 
@@ -36,7 +37,7 @@ public:
     void update(float time);
     void draw(sf::RenderWindow& window);
     void showMessage(std::wstring message, sf::Color color);
-    void drawMessage(sf::RenderWindow& window); // Метод отрисовки всплывающего текста
+    void drawMessage(sf::RenderWindow& window); 
 };
 
 #endif
