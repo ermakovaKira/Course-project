@@ -36,20 +36,29 @@ Player::Player(std::string pathIdle, std::string pathShoot, int width, int heigh
     flashTimer = 0.f;
 }
 
+
+
 void Player::handleInput(sf::Event& event) {
+
     if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Num1) {
         if (inventory.items["Medkit"] > 0) {
+            if (stats.health >= 100.f) {
+                showMessage(L"Здоровье уже на максимуме!", sf::Color::Red);
+                return;
+            }
             inventory.items["Medkit"]--;
             float healAmount = 30.f;
             if (db != nullptr) {
                 healAmount = db->data["Medkit"].effectValue;
             }
             stats.health = std::min(100.f, stats.health + healAmount);
+            health = stats.health;
             std::cout << "Ева использовала аптечку. HP: " << stats.health << std::endl;
         }
     }
 
-    if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Space) {
+
+    if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Space && !isShooting) {
         if (inventory.items["Ammo"] > 0) {
             inventory.items["Ammo"]--;
             isShooting = true;
@@ -58,8 +67,13 @@ void Player::handleInput(sf::Event& event) {
             animationClock.restart();
             std::cout << "Выстрел! Патронов осталось: " << inventory.items["Ammo"] << std::endl;
         }
+        else {
+            showMessage(L"НЕТ ПАТРОНОВ!", sf::Color::Red);
+        }
     }
 }
+
+
 
 void Player::update(float time) {
 

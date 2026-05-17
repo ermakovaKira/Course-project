@@ -24,6 +24,7 @@ public:
     Interactable kitchenTable;
     Interactable clothesCloset;
 
+    sf::CircleShape noteGlow;
     bool nearMark, nearPc, nearPhoto, nearTable, nearCloset;
 
 public:
@@ -40,7 +41,13 @@ public:
         roomSprite.setTexture(roomTex);
         roomSprite.setScale(1584.f / roomSprite.getLocalBounds().width, 400.f / roomSprite.getLocalBounds().height);
 
-        mark.init("npc_sprite.png", "mark_move.png", sf::Vector2f(1050.f, 370.f));
+        mark.init("npc_sprite.png", "mark_move.png", sf::Vector2f(1050.f, 385.f));
+
+        noteGlow.setRadius(3.f);
+        noteGlow.setFillColor(sf::Color(255, 255, 180, 240));
+        noteGlow.setOutlineColor(sf::Color::Black);
+        noteGlow.setOutlineThickness(1.f);
+        noteGlow.setPosition(740.f, 255.f);
 
         nearMark = nearPc = nearPhoto = nearTable = nearCloset = false;
     }
@@ -61,7 +68,7 @@ public:
             }
             else {
                 mark.setState(false);
-                mark.setPosition(targetExitX, 370.f);
+                mark.setPosition(targetExitX, 385.f);
             }
         }
 
@@ -72,22 +79,23 @@ public:
         nearMark = (std::abs(playerX - mark.getPosition().x) < 60.f);
         mark.showHint = (nearMark && !dialogueIsOpen);
 
-        nearPc = (std::abs(playerX - pcStation.sprite.getPosition().x) < 50.f);
+        nearPc = (std::abs(playerX - 1460.f) < 60.f);
         pcStation.showHint = (nearPc && !dialogueIsOpen && story.noteRead && !story.readLaptopEmail);
 
-        nearPhoto = (std::abs(playerX - familyPhoto.sprite.getPosition().x) < 40.f);
+        nearPhoto = (std::abs(playerX - 1380.f) < 40.f);
         familyPhoto.showHint = (nearPhoto && !dialogueIsOpen);
 
-        nearTable = (std::abs(playerX - kitchenTable.sprite.getPosition().x) < 50.f);
+        nearTable = (std::abs(playerX - 740.f) < 60.f);
         kitchenTable.showHint = (nearTable && !dialogueIsOpen && !story.noteRead);
 
-        nearCloset = (std::abs(playerX - clothesCloset.sprite.getPosition().x) < 45.f);
+        nearCloset = (std::abs(playerX - 90.f) < 60.f);
         clothesCloset.showHint = (nearCloset && !dialogueIsOpen && story.talkedToMarkStart && currentAmmo == 0);
     }
 
     void handleInteraction(Player& hero, StoryManager& story, DialogueSystem& dialogue, DialogueDatabase& dialogueDb) {
         if (nearTable && !story.noteRead) {
             story.noteRead = true;
+            hero.inventory.addItem("Note", 1);
             dialogue.startDialogue(dialogueDb.getDialogue("apartment_note"));
             return;
         }
@@ -105,7 +113,7 @@ public:
 
         if (nearMark) {
             if (!story.noteRead) {
-                dialogue.startDialogue(dialogueDb.getDialogue("inspect_mark_blocked"));
+                dialogue.startDialogue(dialogueDb.getDialogue("inspect_pc_blocked"));
             }
             else if (!story.readLaptopEmail) {
                 dialogue.startDialogue(dialogueDb.getDialogue("apartment_mark_before_pc"));
@@ -143,20 +151,56 @@ public:
         window.draw(roomSprite);
         pcStation.draw(window);
         familyPhoto.draw(window);
-        kitchenTable.draw(window);
         clothesCloset.draw(window);
         mark.draw(window);
 
+        sf::Font font;
+        if (!font.loadFromFile("PixeloidSans.ttf")) return;
+
         if (mark.showHint) {
-            sf::Font font;
-            if (font.loadFromFile("PixeloidSans.ttf")) {
-                sf::Text hint(L"Нажмите E", font, 12);
-                hint.setFillColor(sf::Color::Yellow);
-                hint.setOutlineColor(sf::Color::Black);
-                hint.setOutlineThickness(1.f);
-                hint.setPosition(mark.getPosition().x - 25.f, mark.getPosition().y - 215.f);
-                window.draw(hint);
-            }
+            sf::Text hint(L"Нажмите E (Марк)", font, 12);
+            hint.setFillColor(sf::Color::Yellow);
+            hint.setOutlineColor(sf::Color::Black);
+            hint.setOutlineThickness(1.f);
+            hint.setPosition(mark.getPosition().x - 40.f, mark.getPosition().y - 215.f);
+            window.draw(hint);
+        }
+
+        if (kitchenTable.showHint) {
+            window.draw(noteGlow);
+            sf::Text hint(L"Нажмите E (Прочесть записку)", font, 12);
+            hint.setFillColor(sf::Color::Yellow);
+            hint.setOutlineColor(sf::Color::Black);
+            hint.setOutlineThickness(1.f);
+            hint.setPosition(740.f - 85.f, 225.f);
+            window.draw(hint);
+        }
+
+        if (pcStation.showHint) {
+            sf::Text hint(L"Нажмите E (Компьютер)", font, 12);
+            hint.setFillColor(sf::Color::Yellow);
+            hint.setOutlineColor(sf::Color::Black);
+            hint.setOutlineThickness(1.f);
+            hint.setPosition(1460.f - 60.f, 215.f);
+            window.draw(hint);
+        }
+
+        if (familyPhoto.showHint) {
+            sf::Text hint(L"Нажмите E (Осмотреть фото)", font, 12);
+            hint.setFillColor(sf::Color::Yellow);
+            hint.setOutlineColor(sf::Color::Black);
+            hint.setOutlineThickness(1.f);
+            hint.setPosition(1380.f - 75.f, 230.f);
+            window.draw(hint);
+        }
+
+        if (clothesCloset.showHint) {
+            sf::Text hint(L"Нажмите E (Открыть шкаф)", font, 12);
+            hint.setFillColor(sf::Color::Yellow);
+            hint.setOutlineColor(sf::Color::Black);
+            hint.setOutlineThickness(1.f);
+            hint.setPosition(90.f - 60.f, 170.f);
+            window.draw(hint);
         }
     }
 };

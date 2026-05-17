@@ -1,26 +1,36 @@
-#ifndef NPC_H
-#define NPC_H
-
+#ifndef CHARACTER_H
+#define CHARACTER_H
 #pragma once
+
 #include <SFML/Graphics.hpp>
+#include <string>
 #include <iostream>
 
-class NPC {
-public:
+class Character {
+protected:
     sf::Sprite staticSprite;
     sf::Sprite moveSprite;
-
     sf::Texture staticTex;
     sf::Texture moveTex;
-
     bool isMoveTexLoaded;
-    bool showHint;
+    float targetHeight;
+
+public:
     float health;
     bool isMovingNow;
+    bool faceRight;
 
-    NPC() : isMoveTexLoaded(false), showHint(false), health(100.f), isMovingNow(false) {}
+    Character() {
+        isMoveTexLoaded = false;
+        health = 100.f;
+        isMovingNow = false;
+        faceRight = true;
+        targetHeight = 189.f;
+    }
 
-    void init(std::string staticFile, std::string moveFile, sf::Vector2f startPos) {
+    virtual ~Character() {}
+
+    virtual void init(std::string staticFile, std::string moveFile, sf::Vector2f startPos) {
         if (!staticTex.loadFromFile(staticFile)) {
             std::cout << "Error: " << staticFile << " not found!" << std::endl;
         }
@@ -35,13 +45,10 @@ public:
             isMoveTexLoaded = true;
         }
 
-        float targetHeight = 189.f;
-
         staticSprite.setTexture(staticTex);
         int staticW = static_cast<int>(staticTex.getSize().x);
         int staticH = static_cast<int>(staticTex.getSize().y);
         staticSprite.setTextureRect(sf::IntRect(0, 0, staticW, staticH));
-
         staticSprite.setOrigin(static_cast<float>(staticW) / 2.f, static_cast<float>(staticH));
 
         float scaleFactorStatic = targetHeight / staticSprite.getLocalBounds().height;
@@ -56,32 +63,42 @@ public:
             moveSprite.setScale(scaleFactorMove, scaleFactorMove);
         }
         moveSprite.setPosition(startPos);
-
-        isMovingNow = false;
     }
 
-    void setState(bool isMoving, int frameIndex = 0) {
+    virtual void setState(bool isMoving, int frameIndex = 0) {
         isMovingNow = isMoving;
         if (isMoving && isMoveTexLoaded) {
             moveSprite.setTextureRect(sf::IntRect(frameIndex * 150, 0, 150, 234));
         }
     }
 
-    void setPosition(float x, float y) {
+    virtual void setPosition(float x, float y) {
         staticSprite.setPosition(x, y);
         moveSprite.setPosition(x, y);
     }
 
-    sf::Vector2f getPosition() {
+    virtual sf::Vector2f getPosition() const {
         return isMovingNow ? moveSprite.getPosition() : staticSprite.getPosition();
     }
 
-    void move(float offsetX, float offsetY) {
+    virtual void move(float offsetX, float offsetY) {
         staticSprite.move(offsetX, offsetY);
         moveSprite.move(offsetX, offsetY);
     }
 
-    void draw(sf::RenderWindow& window) {
+    virtual void setFacing(bool right) {
+        faceRight = right;
+        float currentScaleX = std::abs(staticSprite.getScale().x);
+        float currentScaleY = staticSprite.getScale().y;
+        float factor = faceRight ? 1.f : -1.f;
+
+        staticSprite.setScale(currentScaleX * factor, currentScaleY);
+        if (isMoveTexLoaded) {
+            moveSprite.setScale(currentScaleX * factor, currentScaleY);
+        }
+    }
+
+    virtual void draw(sf::RenderWindow& window) {
         if (isMovingNow && isMoveTexLoaded) {
             window.draw(moveSprite);
         }
@@ -92,3 +109,4 @@ public:
 };
 
 #endif
+

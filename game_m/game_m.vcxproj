@@ -145,7 +145,7 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Enemy.cpp" />
+    <ClCompile Include="GameManager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="HealthBar.cpp" />
     <ClCompile Include="Player.cpp" />
@@ -153,10 +153,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApartmentScene.h" />
+    <ClInclude Include="BaseScene.h" />
     <ClInclude Include="Bullet.h" />
+    <ClInclude Include="Character.h" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="DialogueDatabase.h" />
     <ClInclude Include="DialogueSystem.h" />
+    <ClInclude Include="ElevatorScene.h" />
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="GameManager.h" />
     <ClInclude Include="HallwayScene.h" />
@@ -168,6 +171,7 @@
     <ClInclude Include="Player.h" />
     <ClInclude Include="Stats.h" />
     <ClInclude Include="StoryManager.h" />
+    <ClInclude Include="TechScene.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

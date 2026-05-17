@@ -27,7 +27,7 @@
     <ClCompile Include="HealthBar.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="Enemy.cpp">
+    <ClCompile Include="GameManager.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
   </ItemGroup>
@@ -78,6 +78,18 @@
       <Filter>Исходные файлы</Filter>
     </ClInclude>
     <ClInclude Include="HallwayScene.h">
+      <Filter>Исходные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="ElevatorScene.h">
+      <Filter>Исходные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="TechScene.h">
+      <Filter>Исходные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="Character.h">
+      <Filter>Исходные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="BaseScene.h">
       <Filter>Исходные файлы</Filter>
     </ClInclude>
   </ItemGroup>
